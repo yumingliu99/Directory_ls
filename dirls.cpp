@@ -31,15 +31,15 @@ void manual();
 //Function to check if a specified file is a file or directory
 bool isDirectory(const char* pathname);
 
-bool symbolicLinks(const char * path, dirls flags);
+bool symbolicLinks(const char * path, dirls &flags);
 
 int count_chars(const char* array);
 
 void longForm(const char* pathname);
 
-void generalNavigation(const char* pathname, dirls flags);
+void generalNavigation(const char* pathname, dirls &flags);
 
-void fNavigation(const char* pathname, dirls flags);
+void fNavigation(const char* pathname, dirls &flags);
 
 /*
 [harazduk@storm cs3595]$ dirls -h
@@ -112,7 +112,7 @@ bool isDirectory(const char* pathname){
 
 //TODO: write -f function, which handles following symbolic links (to best of my knowledge
 // this means to print out absolute path?
-bool symbolicLinks(const char * path, dirls flags){
+bool symbolicLinks(const char * path, dirls &flags){
     struct stat info;
     char *resolved_path = new char;
     if (lstat(path, &info) != 0){
@@ -187,13 +187,14 @@ void longForm(const char* pathname){
         printf("%d ", pwd.pw_uid);
         printf("%d ", grp.gr_gid);
         printf("%d ", (int) info.st_size);
-        printf("%d ", info.st_mtime);
-        printf(" ");
+        char * time = new char[50];
+        time = ctime(&info.st_mtime);
+        printf("%s ", time);
     }
 }
 
 // this general case handles all combinations without -f
-void generalNavigation(const char *pathname, dirls flags) {
+void generalNavigation(const char *pathname, dirls &flags) {
     int size = count_chars(pathname);
     char* currentDir = new char[256];
     char * new_path = new char[256]; // this is just a non const variable to hold the name of the path ***
@@ -209,12 +210,11 @@ void generalNavigation(const char *pathname, dirls flags) {
         while ((en = readdir(dir)) != NULL) { // here we iterate through all of the listings inside of the larger directory "pathname"
             if (flags.d || size <= 1) strcpy(new_path, currentDir); //update pathname to given path
             else strcpy(new_path, pathname); //update pathname to working directory
-
+            strcat(new_path, "/"); //these two lines creates new pathname for recursion
+            strcat(new_path, en->d_name);
             if (!flags.a) { // disregard dot files without -a
                 if (en->d_name[0] != '.') { // en->d_name is the directory names instead
                     if (flags.l){ // Implements -l
-                        strcat(new_path, "/"); //these two lines creates new pathname for recursion
-                        strcat(new_path, en->d_name);
                         longForm(new_path);
                     }
                     cout << en->d_name << endl;
@@ -222,8 +222,6 @@ void generalNavigation(const char *pathname, dirls flags) {
             }
             else{
                 if (flags.l){ // implements -l and -a
-                    strcat(new_path, "/"); //these two lines creates new pathname for recursion
-                    strcat(new_path, en->d_name);
                     longForm(new_path);
                 }
                 cout << en->d_name << endl;
@@ -244,7 +242,7 @@ void generalNavigation(const char *pathname, dirls flags) {
 }
 
 //TODO: write navigation function for when -f is involved. see if you can manage the -d an -f combo along with everything else.
-void fNavigation(const char *pathname, dirls flags) {
+void fNavigation(const char *pathname, dirls &flags) {
     int size = 2 * count_chars(pathname);
     char* currentDir = new char[256];
     char* symlink = new char[size];
